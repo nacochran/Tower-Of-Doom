@@ -9,6 +9,39 @@ var ambientLight = [1.0, 1.0, 1.0, 0.5];
 var directionalLight = m4.normalize([0.5, 0.7, 1]);
 var pointLight = [100, 330, 400];
 
+// Adjust radius, height increment, and number of turns
+const spiralStaircase = {
+  curvatureConstant: 1
+ };
+
+ function mapVertexToCurve(vertex) {
+  const x = vertex[0];
+  const y = vertex[1];
+  const z = vertex[2];
+
+  // Calculate the radius
+  const radius = x;
+
+  // Calculate theta based on z
+  const theta = z * spiralStaircase.curvatureConstant;
+
+  // Calculate the new x and z coordinates
+  const newX = Math.cos(theta) * radius;
+  const newZ = Math.sin(theta) * radius;
+
+  // Calculate the new y coordinate
+  const newY = y; // You can adjust this based on your requirements
+
+  return [newX, newY, newZ];
+}
+
+
+// Test with a simple vertex
+const vertex = [25, 0, Math.PI/2, 1];
+const transformedVertex = mapVertexToCurve(vertex);
+console.log(transformedVertex);
+
+
 function setupWebGL() {
 
   // Get A WebGL context
@@ -147,7 +180,11 @@ function setupWebGL() {
     gl_objects.forEach(object => {
       // calculate world matrix
       var worldMatrix = (object.targetObject === undefined) ? (m4.identity()) : (object.targetObject.tMatrix);
-      //console.log(object.tMatrix);
+      var renderType = (object.targetObject === undefined) ? 'regular' : object.targetObject.renderType;
+      if (renderType === 'spiral') {
+        //const spiralMatrix = createSpiralMatrix();
+        //worldMatrix = m4.multiply(worldMatrix, spiralMatrix);
+      }
       gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
 
       // get the inverse of the world matrix
@@ -195,8 +232,8 @@ function setupLevels() {
     design: function() {
       // add camera
       camera = new Camera({
-        position: [0, 150, 1500],
-        target: [0, 0, 0]
+        position: [1500, 150, 1200],
+        target: [300, 0, 0]
       });
 
       // add the players
@@ -211,12 +248,13 @@ function setupLevels() {
 
       // add some blocks
       for (var i = 0; i < 5; i ++) {
-        for (var j = 0; j < 10; j++) {
+        for (var j = 0; j < 50; j++) {
           blocks.push(new Block({
             x: 350 + i * 50,
             y: -100, 
-            z: 0 + j * 50,
-            size: 50
+            z: 200 - j * 50,
+            size: 50,
+            renderType: 'spiral'
           }));
         }
       }

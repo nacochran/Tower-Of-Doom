@@ -10,7 +10,8 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
     colors: [], 
     normals: [],
     targetObject: targetObject,
-    primitiveType: 'TRIANGLES'
+    primitiveType: 'TRIANGLES',
+    renderType: targetObject.renderType
   };
 
   var hs = size / 2; // half-size
