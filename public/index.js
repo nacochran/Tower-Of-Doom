@@ -20,24 +20,47 @@ function setupWebGL() {
 
   // setup GLSL program
   var program = webglUtils.createProgramFromScripts(gl, ["vertex-shader-3d", "fragment-shader-3d"]);
+  var spiralProgram = webglUtils.createProgramFromScripts(gl, ["spiral-vertex-shader", "fragment-shader-3d"]);
 
-  // look up where the vertex data needs to go.
-  var positionLocation = gl.getAttribLocation(program, "a_position");
-  var colorLocation = gl.getAttribLocation(program, "a_color");
-  var normalLocation = gl.getAttribLocation(program, "a_normal");
 
-  // lookup uniforms
-  var matrixLocation = gl.getUniformLocation(program, "u_viewMatrix");
-  var matrixInverseTransposeLocation = gl.getUniformLocation(program, "u_worldMatrixInverseTranspose");
-  var lightWorldPositionLocation =
-      gl.getUniformLocation(program, "u_lightWorldPosition");
-  var worldLocation =
-      gl.getUniformLocation(program, "u_world");
-  var ambientLightLocation =
-      gl.getUniformLocation(program, "u_ambientLight");
-  var reverseLightDirectionLocation = 
-      gl.getUniformLocation(program, "u_reverseLightDirection");
-
+   // Store the shader programs
+   var shaders = {
+    normal: {
+      program: program,
+      attribLocations: {
+        position: gl.getAttribLocation(program, "a_position"),
+        color: gl.getAttribLocation(program, "a_color"),
+        normal: gl.getAttribLocation(program, "a_normal"),
+      },
+      uniformLocations: {
+        viewMatrix: gl.getUniformLocation(program, "u_viewMatrix"),
+        worldMatrix: gl.getUniformLocation(program, "u_world"),
+        worldMatrixInverseTranspose: gl.getUniformLocation(program, "u_worldMatrixInverseTranspose"),
+        lightWorldPosition: gl.getUniformLocation(program, "u_lightWorldPosition"),
+        ambientLight: gl.getUniformLocation(program, "u_ambientLight"),
+        reverseLightDirection: gl.getUniformLocation(program, "u_reverseLightDirection"),
+      }
+    },
+    spiral: {
+      program: spiralProgram,
+      attribLocations: {
+        position: gl.getAttribLocation(spiralProgram, "a_position"),
+        color: gl.getAttribLocation(spiralProgram, "a_color"),
+        normal: gl.getAttribLocation(spiralProgram, "a_normal"),
+      },
+      uniformLocations: {
+        viewMatrix: gl.getUniformLocation(spiralProgram, "u_viewMatrix"),
+        worldMatrix: gl.getUniformLocation(spiralProgram, "u_world"),
+        worldMatrixInverseTranspose: gl.getUniformLocation(spiralProgram, "u_worldMatrixInverseTranspose"),
+        lightWorldPosition: gl.getUniformLocation(spiralProgram, "u_lightWorldPosition"),
+        ambientLight: gl.getUniformLocation(spiralProgram, "u_ambientLight"),
+        reverseLightDirection: gl.getUniformLocation(spiralProgram, "u_reverseLightDirection"),
+        spiralRadius: gl.getUniformLocation(spiralProgram, "u_spiralRadius"),
+        spiralHeight: gl.getUniformLocation(spiralProgram, "u_spiralHeight"),
+      }
+    }
+  };
+  
   // Create buffers
   var positionBuffer = gl.createBuffer();
   var colorBuffer = gl.createBuffer();
@@ -68,100 +91,51 @@ function setupWebGL() {
   /** Create Renderer **/
   render = function() {
     webglUtils.resizeCanvasToDisplaySize(gl.canvas);
-
-    // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    // Clear the canvas AND the depth buffer.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // Turn on culling. By default backfacing triangles
-    // will be culled.
     gl.enable(gl.CULL_FACE);
-
-    // Enable the depth buffer
     gl.enable(gl.DEPTH_TEST);
-
-    // Tell it to use our program (pair of shaders)
-    gl.useProgram(program);
-
-    // Turn on the position attribute
-    gl.enableVertexAttribArray(positionLocation);
-
-    // Bind the position buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-    // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-    var size = 3;          // 3 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-        positionLocation, size, type, normalize, stride, offset);
-
-    // Turn on the color attribute
-    gl.enableVertexAttribArray(colorLocation);
-
-    // Bind the color buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-
-    // Tell the attribute how to get data out of colorBuffer (ARRAY_BUFFER)
-    var size = 3;                 // 3 components per iteration
-    var type = gl.UNSIGNED_BYTE;  // the data is 8bit unsigned values
-    var normalize = true;         // normalize the data (convert from 0-255 to 0-1)
-    var stride = 0;               // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;               // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-        colorLocation, size, type, normalize, stride, offset);
-
-    // Turn on the normal attribute
-    gl.enableVertexAttribArray(normalLocation);
-
-    // Bind the normal buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-
-    // Tell the attribute how to get data out of normalBuffer (ARRAY_BUFFER)
-    var size = 3;          // 3 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floating point values
-    var normalize = false; // normalize the data (convert from 0-255 to 0-1)
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0;        // start at the beginning of the buffer
-    gl.vertexAttribPointer(
-        normalLocation, size, type, normalize, stride, offset);
-    
-    // calculate camera matrix
-    var viewMatrix = camera.view(gl);
-    gl.uniformMatrix4fv(matrixLocation, false, viewMatrix);
-
-    // add ambient light
-    gl.uniform4fv(ambientLightLocation,  ambientLight);
-
-    // add directional light
-    gl.uniform3fv(reverseLightDirectionLocation, directionalLight);
-
-    // add point light
-    gl.uniform3fv(lightWorldPositionLocation, pointLight);
 
     let startIndex = 0;
     gl_objects.forEach(object => {
-      // calculate world matrix
-      var worldMatrix = (object.targetObject === undefined) ? (m4.identity()) : (object.targetObject.tMatrix);
-      //console.log(object.tMatrix);
-      gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
+      var shader = (object.type === 'spiral') ? shaders.spiral : shaders.normal;
+      gl.useProgram(shader.program);
 
-      // get the inverse of the world matrix
+      gl.enableVertexAttribArray(shader.attribLocations.position);
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.vertexAttribPointer(shader.attribLocations.position, 3, gl.FLOAT, false, 0, 0);
+
+      gl.enableVertexAttribArray(shader.attribLocations.color);
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.vertexAttribPointer(shader.attribLocations.color, 3, gl.UNSIGNED_BYTE, true, 0, 0);
+
+      gl.enableVertexAttribArray(shader.attribLocations.normal);
+      gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+      gl.vertexAttribPointer(shader.attribLocations.normal, 3, gl.FLOAT, false, 0, 0);
+
+      var viewMatrix = camera.view(gl);
+      gl.uniformMatrix4fv(shader.uniformLocations.viewMatrix, false, viewMatrix);
+      gl.uniform4fv(shader.uniformLocations.ambientLight, ambientLight);
+      gl.uniform3fv(shader.uniformLocations.reverseLightDirection, directionalLight);
+      gl.uniform3fv(shader.uniformLocations.lightWorldPosition, pointLight);
+
+      if (object.type === 'spiral') {
+        gl.uniform1f(shader.uniformLocations.spiralRadius, 50.0); // Example radius
+        gl.uniform1f(shader.uniformLocations.spiralHeight, 10.0); // Example height increment per angle unit
+      }
+
+      var worldMatrix = (object.targetObject === undefined) ? (m4.identity()) : (object.targetObject.tMatrix);
+      gl.uniformMatrix4fv(shader.uniformLocations.worldMatrix, false, worldMatrix);
+
       var matrixInverse = m4.inverse(worldMatrix);
       var matrixInverseTranspose = m4.transpose(matrixInverse);
-      gl.uniformMatrix4fv(matrixInverseTransposeLocation, false, matrixInverseTranspose);
+      gl.uniformMatrix4fv(shader.uniformLocations.worldMatrixInverseTranspose, false, matrixInverseTranspose);
 
-      // Draw the geometry.
       var primitiveType = gl[object.primitiveType];
       var offset = startIndex;
       var count = object.positions.length / 3;
       gl.drawArrays(primitiveType, offset, count);
 
-      // increase startIndex for next object
       startIndex += count;
     });
   }
@@ -216,7 +190,8 @@ function setupLevels() {
             x: 350 + i * 50,
             y: -100, 
             z: 0 + j * 50,
-            size: 50
+            size: 50,
+            renderType: 'spiral'
           }));
         }
       }

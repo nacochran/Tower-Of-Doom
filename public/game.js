@@ -211,6 +211,7 @@ class Block extends Actor {
     super(config);
 
     this.type = config.type || 'stone';
+    this.renderType = config.renderType || 'regular';
   }
 
   createGeometry() {
@@ -304,8 +305,6 @@ class Camera {
     this.target = [0, 0, 0];
     this.rotation = [0, 0];
     this.setTarget(...config.target);
-    console.log(this.target);
-    console.log(this.rotation);
     // in radians
     this.fieldOfView = degToRad(60);
     this.zNear = 1;
@@ -389,10 +388,8 @@ class Camera {
   updateRotation(deltaX, deltaY) {
     this.rotation[0] += deltaX;
     this.rotation[1] += deltaY;
-    console.log(this.rotation);
 
     this.updateTarget();
-    console.log(this.target);
   }
 }
 
