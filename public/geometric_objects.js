@@ -9,7 +9,8 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
     positions: [], 
     colors: [], 
     normals: [],
-    targetObject: targetObject
+    targetObject: targetObject,
+    primitiveType: 'TRIANGLES'
   };
 
   var hs = size / 2; // half-size
@@ -104,86 +105,91 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
   gl_objects.push(gl_object);
 }
 
-function cylinder(x, y, z, radius, height, colorsArrayForEachFace, targetObject, segments = 36) {
+function circle(x, y, z, radius, normalDirection, color, targetObject, segments) {
   // create new object to be rendered by WebGL
   let gl_object = { 
-    positions: [], 
-    colors: [], 
-    normals: [],
-    targetObject: targetObject
+      positions: [], 
+      colors: [], 
+      normals: [],
+      targetObject: targetObject,
+      primitiveType: 'TRIANGLE_FAN'
   };
 
-  var hs = height / 2; // half-height
   var angleStep = (2 * Math.PI) / segments;
-  
-  // Top and bottom vertices
+
+  // Top circle vertices
+  gl_object.positions.push(x, y, z);
   for (var i = 0; i <= segments; i++) {
     var angle = i * angleStep;
     var cos = Math.cos(angle);
     var sin = Math.sin(angle);
-
-    // Top circle
-    gl_object.positions.push(x + radius * cos, y + hs, z + radius * sin);
-    // Bottom circle
-    gl_object.positions.push(x + radius * cos, y - hs, z + radius * sin);
+    gl_object.positions.push(x + radius * cos, y, z + radius * sin);
   }
 
-  // Side vertices
-  for (var i = 0; i <= segments; i++) {
-    var angle = i * angleStep;
-    var cos = Math.cos(angle);
-    var sin = Math.sin(angle);
-
-    // Top edge
-    gl_object.positions.push(x + radius * cos, y + hs, z + radius * sin);
-    // Bottom edge
-    gl_object.positions.push(x + radius * cos, y - hs, z + radius * sin);
-  }
-
-  // Colors for top, bottom, and side
-  var topColor = colorsArrayForEachFace[0];
-  var bottomColor = colorsArrayForEachFace[1];
-  var sideColor = colorsArrayForEachFace[2];
-
-  // Add colors
-  for (var i = 0; i <= segments; i++) {
-    gl_object.colors.push(...topColor);
-    gl_object.colors.push(...bottomColor);
-  }
-  
-  for (var i = 0; i <= segments; i++) {
-    gl_object.colors.push(...sideColor);
-    gl_object.colors.push(...sideColor);
+  // Add colors for top and bottom
+  for (var i = 0; i <= segments + 1; i++) {
+    gl_object.colors.push(...color); // Top face color
   }
 
   // Normals
-  for (var i = 0; i <= segments; i++) {
-    gl_object.normals.push(0, 1, 0); // Top normals
-    gl_object.normals.push(0, -1, 0); // Bottom normals
-  }
-
-  for (var i = 0; i <= segments; i++) {
-    var angle = i * angleStep;
-    var cos = Math.cos(angle);
-    var sin = Math.sin(angle);
-
-    gl_object.normals.push(cos, 0, sin);
-    gl_object.normals.push(cos, 0, sin);
-  }
-
-  // Indices for top and bottom
-  for (var i = 0; i < segments; i++) {
-    gl_object.indices.push(i, i + 1, segments + 1); // Top face
-    gl_object.indices.push(segments + 2 + i, segments + 2 + i + 1, 2 * segments + 2); // Bottom face
-  }
-
-  // Indices for side
-  for (var i = 0; i < segments; i++) {
-    var start = 2 * (segments + 1) + 2 * i;
-    gl_object.indices.push(start, start + 1, start + 2);
-    gl_object.indices.push(start + 1, start + 3, start + 2);
+  for (var i = 0; i <= segments + 1; i++) {
+    gl_object.normals.push(...normalDirection);
   }
 
   // add new object to render array to be iterated through
   gl_objects.push(gl_object);
 }
+
+function cylinder(x, y, z, radius, height, colorsArrayForEachFace, targetObject, segments = 36) {
+  var hs = height / 2;
+  var topColor = colorsArrayForEachFace[0],
+      bodyColor = colorsArrayForEachFace[1],
+      bottomColor = colorsArrayForEachFace[2];
+
+  // Draw top circle
+  circle(x, y + hs, z, radius, [0, 1, 0], topColor, targetObject, segments);
+  
+  // Draw bottom circle
+  circle(x, y - hs, z, radius, [0, -1, 0], bottomColor, targetObject, segments);
+
+  // Draw body
+  let gl_object = { 
+    positions: [], 
+    colors: [], 
+    normals: [],
+    targetObject: targetObject,
+    primitiveType: 'TRIANGLE_STRIP'
+  };
+  var angleStep = (2 * Math.PI) / segments;
+
+  // Create vertices for the sides of the cylinder
+  for (var i = 0; i <= segments; i++) {
+    var angle = i * -angleStep;
+
+    var x1 = x + radius *  Math.cos(angle);
+    var z1 = z + radius * Math.sin(angle);
+    var y1 = y + hs;
+    var y2 = y - hs;
+
+    // Push vertices
+    gl_object.positions.push(x1, y1, z1);
+    gl_object.positions.push(x1, y2, z1);
+
+    // Push colors
+    gl_object.colors.push(...bodyColor);
+    gl_object.colors.push(...bodyColor);
+
+    // Calculate normals
+    var normal = [Math.cos(angle), 0, Math.sin(angle)];
+
+    // Push normals
+    gl_object.normals.push(...normal);
+    gl_object.normals.push(...normal);
+  }
+
+  // Add new object to render array to be iterated through
+  gl_objects.push(gl_object);
+}
+
+
+

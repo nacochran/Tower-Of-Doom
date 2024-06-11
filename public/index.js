@@ -157,7 +157,7 @@ function setupWebGL() {
       gl.uniformMatrix4fv(matrixInverseTransposeLocation, false, matrixInverseTranspose);
 
       // Draw the geometry.
-      var primitiveType = gl.TRIANGLES;
+      var primitiveType = gl[object.primitiveType];
       var offset = startIndex;
       var count = object.positions.length / 3;
       gl.drawArrays(primitiveType, offset, count);
@@ -224,6 +224,12 @@ function setupLevels() {
 
       // add the player's geometry
       player.createGeometry();
+
+      // add some extra cool graphics
+      // Define the light brown color
+      var lightBrown = [210, 180, 140];
+      var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
+      cylinder(0, 100, 100, 100, 100, colorsArrayForEachFace);
     }
   }));
 }
