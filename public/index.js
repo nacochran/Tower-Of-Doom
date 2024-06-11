@@ -119,11 +119,6 @@ function setupWebGL() {
       gl.uniform3fv(shader.uniformLocations.reverseLightDirection, directionalLight);
       gl.uniform3fv(shader.uniformLocations.lightWorldPosition, pointLight);
 
-      if (object.type === 'spiral') {
-        gl.uniform1f(shader.uniformLocations.spiralRadius, 50.0); // Example radius
-        gl.uniform1f(shader.uniformLocations.spiralHeight, 10.0); // Example height increment per angle unit
-      }
-
       var worldMatrix = (object.targetObject === undefined) ? (m4.identity()) : (object.targetObject.tMatrix);
       gl.uniformMatrix4fv(shader.uniformLocations.worldMatrix, false, worldMatrix);
 
@@ -169,31 +164,31 @@ function setupLevels() {
     design: function() {
       // add camera
       camera = new Camera({
-        position: [0, 150, 1500],
+        position: [300, 350, 1500],
         target: [0, 0, 0]
       });
 
       // add the players
       player = new Player({
-        x: 500,
+        x: 450,
         y: 0,
-        z: 400,
+        z: 200,
         width: 50,
         height: 50,
         depth: 50
       });
 
       // add some blocks
-      for (var i = 0; i < 5; i ++) {
-        for (var j = 0; j < 10; j++) {
-          blocks.push(new Block({
-            x: 350 + i * 50,
-            y: -100, 
-            z: 0 + j * 50,
-            size: 50,
-            renderType: 'spiral'
-          }));
-        }
+      for (var j = 0; j < 60; j++) {
+        blocks.push(new Block({
+          x: 350,
+          y: -100, 
+          z: j * 15,
+          width: 300,
+          height: 25,
+          depth: 15,
+          renderType: "spiral"
+        }));
       }
     },
     createGeometry: function() {

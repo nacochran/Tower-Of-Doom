@@ -75,12 +75,28 @@
   // the position of the light in our world
   uniform vec3 u_lightWorldPosition;
 
+  //const CURVATURE_CONSTANT = 1;
+
   void main() {
-    // Multiply the position by the matrix
-    gl_Position = u_viewMatrix * u_world * a_position;
-  
+    // transform object in world space
+    gl_Position = u_world * a_position;
+    
+    // project object onto parametric curve
+    float x = gl_Position.x;
+    float y = gl_Position.y;
+    float z = gl_Position.z;
+    float radius = x;
+    float theta = 3.14159265359 * z / 180.0;
+    float newX = cos(theta) * radius;
+    float newZ = sin(theta) * radius;
+    float newY = y + theta * 25.0;
+    gl_Position = vec4(newX, newY, newZ, 1.0);
+
+    // convert vertex into camera coordinates
+    gl_Position = u_viewMatrix * gl_Position;
+
     // Pass the color to the fragment shader.
-    v_color = a_color + vec4(0.5, 0.0, 0.0, 1.0);
+    v_color = a_color;
     // orient the normals and pass to the fragment shader
     v_normal = mat3(u_worldMatrixInverseTranspose) * a_normal;
 
@@ -91,7 +107,7 @@
     // and pass it to the fragment shader
     v_surfaceToLight = u_lightWorldPosition - surfaceWorldPosition;  
   }
-  </script
+</script>
 
 <!-- fragment shader -->
 <script id="fragment-shader-3d" type="x-shader/x-fragment">
