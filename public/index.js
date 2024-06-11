@@ -10,7 +10,6 @@ var directionalLight = m4.normalize([0.5, 0.7, 1]);
 var pointLight = [100, 330, 400];
 
 function setupWebGL() {
-  camera = new Camera();
 
   // Get A WebGL context
   var canvas = document.querySelector("#canvas");
@@ -194,21 +193,27 @@ function setupLevels() {
   levels.push(new Level({
     name: "Test Level",
     design: function() {
+      // add camera
+      camera = new Camera({
+        position: [0, 150, 1500],
+        target: [0, 0, 0]
+      });
+
       // add the players
       player = new Player({
-        x: 0,
+        x: 500,
         y: 0,
-        z: 0,
+        z: 400,
         width: 50,
         height: 50,
         depth: 50
       });
 
       // add some blocks
-      for (var i = 0; i < 10; i ++) {
+      for (var i = 0; i < 5; i ++) {
         for (var j = 0; j < 10; j++) {
           blocks.push(new Block({
-            x: -100 + i * 50,
+            x: 350 + i * 50,
             y: -100, 
             z: 0 + j * 50,
             size: 50
@@ -229,7 +234,13 @@ function setupLevels() {
       // Define the light brown color
       var lightBrown = [210, 180, 140];
       var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
-      cylinder(0, 100, 100, 100, 100, colorsArrayForEachFace);
+      cylinder(0, -900, 0, 450, 300, colorsArrayForEachFace);
+      cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
+      cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
+      cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
+      cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
+      cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
+      cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
     }
   }));
 }
@@ -268,11 +279,10 @@ function runGame() {
 
     // update player
     player.update();
-  }
 
-  // render geometry using WebGL pipeline
-  render();
-  
+    // render geometry using WebGL pipeline
+    render();
+  }
 }
 
 // initalize program

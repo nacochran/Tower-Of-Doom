@@ -105,7 +105,8 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
   gl_objects.push(gl_object);
 }
 
-function circle(x, y, z, radius, normalDirection, color, targetObject, segments) {
+// circle in xz plane
+function xz_circle(x, y, z, radius, normalDirection, color, targetObject, segments) {
   // create new object to be rendered by WebGL
   let gl_object = { 
       positions: [], 
@@ -120,7 +121,7 @@ function circle(x, y, z, radius, normalDirection, color, targetObject, segments)
   // Top circle vertices
   gl_object.positions.push(x, y, z);
   for (var i = 0; i <= segments; i++) {
-    var angle = i * angleStep;
+    var angle = i * angleStep * -normalDirection[1];
     var cos = Math.cos(angle);
     var sin = Math.sin(angle);
     gl_object.positions.push(x + radius * cos, y, z + radius * sin);
@@ -147,10 +148,10 @@ function cylinder(x, y, z, radius, height, colorsArrayForEachFace, targetObject,
       bottomColor = colorsArrayForEachFace[2];
 
   // Draw top circle
-  circle(x, y + hs, z, radius, [0, 1, 0], topColor, targetObject, segments);
+  xz_circle(x, y + hs, z, radius, [0, 1, 0], topColor, targetObject, segments);
   
   // Draw bottom circle
-  circle(x, y - hs, z, radius, [0, -1, 0], bottomColor, targetObject, segments);
+  xz_circle(x, y - hs, z, radius, [0, -1, 0], bottomColor, targetObject, segments);
 
   // Draw body
   let gl_object = { 

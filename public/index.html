@@ -17,7 +17,7 @@
   <canvas id="canvas"></canvas>
   
 
-<!-- vertex shader -->
+<!-- vertex shader  #1 -->
 <script id="vertex-shader-3d" type="x-shader/x-vertex">
   attribute vec4 a_position;
   attribute vec4 a_color;
@@ -54,6 +54,8 @@
     v_surfaceToLight = u_lightWorldPosition - surfaceWorldPosition;  
   }
   </script>
+
+
 
 <!-- fragment shader -->
 <script id="fragment-shader-3d" type="x-shader/x-fragment">

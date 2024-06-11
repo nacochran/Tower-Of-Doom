@@ -232,11 +232,11 @@ class Block extends Actor {
 
   collideX(obj) {
     if (boxCollide(this, obj)) {
-      if (obj.x > this.x && obj.vel.x < 0) {
-        obj.x = this.x + this.size.x;
+      if (obj.pos.x > this.pos.x && obj.vel.x < 0) {
+        obj.pos.x = this.pos.x + this.size.x;
         obj.vel.x = 0;
-      } else if (obj.x < this.x && obj.vel.x > 0) {
-        obj.x = this.x - obj.size.x;
+      } else if (obj.pos.x < this.pos.x && obj.vel.x > 0) {
+        obj.pos.x = this.pos.x - obj.size.x;
         obj.vel.x = 0;
       }
     }
@@ -245,10 +245,10 @@ class Block extends Actor {
   collideY(obj) {
     if (boxCollide(this, obj)) {
       if (obj.pos.y < this.pos.y && obj.vel.y > 0) {
-          obj.pos.y = this.pos.y + this.size.y;
+          obj.pos.y = this.pos.y - this.size.y;
           obj.vel.y *= -1;
       } else if (obj.pos.y > this.pos.y) {
-          obj.y = this.pos.y - obj.size.y;
+          obj.pos.y = this.pos.y + obj.size.y;
           obj.vel.y = 0;
           obj.acc.y = 0;
           obj.dragForce = 0.5;
@@ -259,12 +259,14 @@ class Block extends Actor {
   }
 
   collideZ(obj) {
-    if (obj.z > this.z && obj.vel.z < 0) {
-      obj.z = this.z + this.size.z;
-      obj.vel.z = 0;
-    } else if (obj.z < this.z && obj.vel.z > 0) {
-      obj.x = this.z - obj.size.z;
-      obj.vel.z = 0;
+    if (boxCollide(this, obj)) {
+      if (obj.pos.z > this.pos.z && obj.vel.z < 0) {
+        obj.pos.z = this.pos.z + this.size.z;
+        obj.vel.z = 0;
+      } else if (obj.pos.z < this.pos.z && obj.vel.z > 0) {
+        obj.pos.z = this.pos.z - obj.size.z;
+        obj.vel.z = 0;
+      }
     }
   }
 
@@ -297,10 +299,13 @@ class Level {
 * Camera Class
 */
 class Camera {
-  constructor() {
-    this.position = [0, 0, 500];
-    this.rotation = [0, 0];
+  constructor(config) {
+    this.position = config.position;
     this.target = [0, 0, 0];
+    this.rotation = [0, 0];
+    this.setTarget(...config.target);
+    console.log(this.target);
+    console.log(this.rotation);
     // in radians
     this.fieldOfView = degToRad(60);
     this.zNear = 1;
@@ -330,7 +335,7 @@ class Camera {
 
   // updates target based on camera's position & angle
   updateTarget() {
-    var yaw = this.rotation[0];
+    var yaw = Math.PI - this.rotation[0];
     var pitch = this.rotation[1];
 
     var direction = [
@@ -346,7 +351,7 @@ class Camera {
     this.target = [
       this.position[0] + direction[0],
       this.position[1] + direction[1],
-      this.position[2] - direction[2]
+      this.position[2] + direction[2]
     ];
   }
 
@@ -358,7 +363,7 @@ class Camera {
     var direction = subtractVectors(this.target, this.position);
 
     // Calculate the yaw and pitch angles
-    var yaw = Math.atan2(direction[0], direction[2]);
+    var yaw = Math.atan2(direction[0], -direction[2]);
     var pitch = Math.atan2(direction[1], Math.sqrt(direction[0] * direction[0] + direction[2] * direction[2]));
 
     // Update the camera rotation
@@ -384,8 +389,10 @@ class Camera {
   updateRotation(deltaX, deltaY) {
     this.rotation[0] += deltaX;
     this.rotation[1] += deltaY;
+    console.log(this.rotation);
 
     this.updateTarget();
+    console.log(this.target);
   }
 }
 
