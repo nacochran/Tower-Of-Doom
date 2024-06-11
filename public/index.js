@@ -182,8 +182,9 @@ function setupWebGL() {
       var worldMatrix = (object.targetObject === undefined) ? (m4.identity()) : (object.targetObject.tMatrix);
       var renderType = (object.targetObject === undefined) ? 'regular' : object.targetObject.renderType;
       if (renderType === 'spiral') {
-        //const spiralMatrix = createSpiralMatrix();
-        //worldMatrix = m4.multiply(worldMatrix, spiralMatrix);
+        for (var i = 0; i < object.positions.length; i += 3) {
+          //
+        }
       }
       gl.uniformMatrix4fv(worldLocation, false, worldMatrix);
 
