@@ -161,75 +161,64 @@ class Player extends Actor {
           [55, 207, 25]  // Left face color
         ];
 
-    var s = this.size.x;
-    cube(-s/2, -s/2, -s/2, s, colors, this);
-  }
-
-  // // rotate counterclockwise / clockwise
-  // rotate(activateLeft, activateRight) {
-  //   if (activateLeft) {
-  //     this.rot.y++;
-  //   } else if (activateRight) {
-  //     this.rot.y--;
-  //   }
-  // }
-
-  updateX(activateLeft, activateRight) {  
-    if (activateLeft && Math.abs(this.vel.x) < this.maxSpeed) {
-        this.acc.x = -0.2;
-        this.acc.x -= (this.vel.x > 0) ? this.dragForce/2 : 0;
-    } else if (activateRight && Math.abs(this.vel.x) < this.maxSpeed) {
-        this.acc.x = 0.2;
-        this.acc.x += (this.vel.x < 0) ? this.dragForce/2 : 0;
-    } else if (Math.abs(this.vel.x) > this.dragForce) {
-        this.acc.x = (this.vel.x < 0) ? this.dragForce : -this.dragForce;
-    } else {
-        this.vel.x = 0;
-    }
-
-    this.pos.x += this.vel.x;
-    this.vel.x += this.acc.x;
-  }
-
-  rotatePlayer(activateUp, activateDown) {
-    if (activateUp) {
-      this.rot.y += 360/this.pos.x;
-    } else if (activateDown) {
-      this.rot.y -= 360/this.pos.x;
-    }
+        rectangularPrism(
+          -this.size.x/2, 
+          -this.size.y/2, 
+          -this.size.z/2, 
+          this.size.x, 
+          this.size.y, 
+          this.size.z, 
+          colors, 
+          this
+        );
   }
 
   update() {
-    this.rotatePlayer(keys.pressed('up'), keys.pressed('down'));
-    //camera.setPosition(this.pos.x + eVector[0], this.pos.y + eVector[1], this.pos.z + eVector[2]);
+    // camera target
+    let x1 = this.pos.x,
+        y1 = this.pos.y,
+        z1 = this.pos.z;
+      // camera position
+    let x2 = this.pos.x + 100,
+        y2 = this.pos.y + 100,
+        z2 = this.pos.z + 25;
+    
+    let r1 = x1, r2 = x2;
+    let theta1 = degToRad(z1),
+        theta2 = degToRad(z2);
+
+    // set camera target
+    let camTX = Math.cos(theta1) * r1;
+    let camTZ = Math.sin(theta1) * r1;
+    let camTY = y1 - theta1 * 100.0;
+    camera.setTarget(camTX, camTY, camTZ);
+
+    // set camera position
+    let camX = Math.cos(theta2) * r2;
+    let camZ = Math.sin(theta2) * r2;
+    let camY = y2 - theta2 * 100.0;
+    camera.setPosition(camX, camY, camZ);
 
     // move and collide y
     this.updateY(keys.pressed('space'));
-    let platformY = -25;
-    if (this.pos.y + this.size.y < platformY && this.pos.x > 450 && this.pos.x < 800) {
-      this.pos.y = platformY - this.size.y;
-      this.vel.y = 0;
-      this.acc.y = 0;
-      this.dragForce = 0.5;
-      this.onObject = true;
-      this.onTime = 0;
-    }
-    // blocks.forEach(block => {
-    //   block.collideY(this);
-    // });
+    blocks.forEach(block => {
+      block.collideY(this);
+    });
 
     // apply drag for x-z movement
     this.applyDrag();
 
     // move and collide x
     this.updateX(keys.pressed('left'), keys.pressed('right'));
-    if (this.pos.y + this.size.y < platformY) {
-      if (this.pos.x > 450 && this.pos.x < 600) {
-        this.pos.x = 450;
-      } else if (this.pos.x < 800 && this.pos.x > 600) {
-        this.pos.x = 800;
-      }
-    }
+    blocks.forEach(block => {
+      block.collideX(this);
+    });
+
+    // move and collide z
+    this.updateZ(keys.pressed('up'), keys.pressed('down'));
+    blocks.forEach(block => {
+      block.collideZ(this);
+    });
 
     this.setTransformationMatrix();
   }

@@ -87,7 +87,7 @@
     float theta = 3.14159265359 * z / 180.0;
     float newX = cos(theta) * radius;
     float newZ = sin(theta) * radius;
-    float newY = y;
+    float newY = y - theta * 100.0;
     gl_Position = vec4(newX, newY, newZ, 1.0);
 
     // convert vertex into camera coordinates
