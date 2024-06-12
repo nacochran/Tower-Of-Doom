@@ -9,6 +9,39 @@ var ambientLight = [1.0, 1.0, 1.0, 0.5];
 var directionalLight = m4.normalize([0.5, 0.7, 1]);
 var pointLight = [100, 330, 400];
 
+// Adjust radius, height increment, and number of turns
+const spiralStaircase = {
+  curvatureConstant: 1
+ };
+
+ function mapVertexToCurve(vertex) {
+  const x = vertex[0];
+  const y = vertex[1];
+  const z = vertex[2];
+
+  // Calculate the radius
+  const radius = x;
+
+  // Calculate theta based on z
+  const theta = z * spiralStaircase.curvatureConstant;
+
+  // Calculate the new x and z coordinates
+  const newX = Math.cos(theta) * radius;
+  const newZ = Math.sin(theta) * radius;
+
+  // Calculate the new y coordinate
+  const newY = y; // You can adjust this based on your requirements
+
+  return [newX, newY, newZ];
+}
+
+
+// Test with a simple vertex
+const vertex = [25, 0, Math.PI/2, 1];
+const transformedVertex = mapVertexToCurve(vertex);
+console.log(transformedVertex);
+
+
 function setupWebGL() {
 
   // Get A WebGL context
