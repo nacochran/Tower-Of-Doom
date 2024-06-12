@@ -165,39 +165,71 @@ class Player extends Actor {
     cube(-s/2, -s/2, -s/2, s, colors, this);
   }
 
-  // rotate counterclockwise / clockwise
-  rotate(activateLeft, activateRight) {
-    if (activateLeft) {
-      this.rot.y++;
-    } else if (activateRight) {
-      this.rot.y--;
+  // // rotate counterclockwise / clockwise
+  // rotate(activateLeft, activateRight) {
+  //   if (activateLeft) {
+  //     this.rot.y++;
+  //   } else if (activateRight) {
+  //     this.rot.y--;
+  //   }
+  // }
+
+  updateX(activateLeft, activateRight) {  
+    if (activateLeft && Math.abs(this.vel.x) < this.maxSpeed) {
+        this.acc.x = -0.2;
+        this.acc.x -= (this.vel.x > 0) ? this.dragForce/2 : 0;
+    } else if (activateRight && Math.abs(this.vel.x) < this.maxSpeed) {
+        this.acc.x = 0.2;
+        this.acc.x += (this.vel.x < 0) ? this.dragForce/2 : 0;
+    } else if (Math.abs(this.vel.x) > this.dragForce) {
+        this.acc.x = (this.vel.x < 0) ? this.dragForce : -this.dragForce;
+    } else {
+        this.vel.x = 0;
+    }
+
+    this.pos.x += this.vel.x;
+    this.vel.x += this.acc.x;
+  }
+
+  rotatePlayer(activateUp, activateDown) {
+    if (activateUp) {
+      this.rot.y += 360/this.pos.x;
+    } else if (activateDown) {
+      this.rot.y -= 360/this.pos.x;
     }
   }
 
   update() {
-    // orientation player
-    //this.rotate(keys.pressed('left'), keys.pressed('right'));
+    this.rotatePlayer(keys.pressed('up'), keys.pressed('down'));
+    //camera.setPosition(this.pos.x + eVector[0], this.pos.y + eVector[1], this.pos.z + eVector[2]);
 
     // move and collide y
     this.updateY(keys.pressed('space'));
-    blocks.forEach(block => {
-      block.collideY(this);
-    });
+    let platformY = -25;
+    if (this.pos.y + this.size.y < platformY && this.pos.x > 450 && this.pos.x < 800) {
+      this.pos.y = platformY - this.size.y;
+      this.vel.y = 0;
+      this.acc.y = 0;
+      this.dragForce = 0.5;
+      this.onObject = true;
+      this.onTime = 0;
+    }
+    // blocks.forEach(block => {
+    //   block.collideY(this);
+    // });
 
     // apply drag for x-z movement
     this.applyDrag();
 
     // move and collide x
     this.updateX(keys.pressed('left'), keys.pressed('right'));
-    blocks.forEach(block => {
-      block.collideX(this);
-    });
-
-    // move and collide z
-    this.updateZ(keys.pressed('up'), keys.pressed('down'));
-    blocks.forEach(block => {
-      block.collideZ(this);
-    });
+    if (this.pos.y + this.size.y < platformY) {
+      if (this.pos.x > 450 && this.pos.x < 600) {
+        this.pos.x = 450;
+      } else if (this.pos.x < 800 && this.pos.x > 600) {
+        this.pos.x = 800;
+      }
+    }
 
     this.setTransformationMatrix();
   }
@@ -378,6 +410,12 @@ class Camera {
 
     // Update the camera rotation
     this.rotation = [yaw, pitch];
+  }
+
+  setPosition(x, y, z) {
+    this.position[0] = x;
+    this.position[1] = y;
+    this.position[2] = z;
   }
 
   updatePosition(speed) {

@@ -164,29 +164,29 @@ function setupLevels() {
     design: function() {
       // add camera
       camera = new Camera({
-        position: [300, 350, 1500],
-        target: [0, 0, 0]
+        position: [600, 50, 450],
+        target: [500, 0, 100]
       });
 
       // add the players
       player = new Player({
-        x: 450,
+        x: 600,
         y: 0,
-        z: 200,
+        z: 0,
         width: 50,
         height: 50,
         depth: 50
       });
 
       // add some blocks
-      for (var j = 0; j < 60; j++) {
+      for (var j = 0; j < 20; j++) {
         blocks.push(new Block({
-          x: 350,
+          x: 500,
           y: -100, 
-          z: j * 15,
+          z: 400 - j * 18,
           width: 300,
           height: 25,
-          depth: 15,
+          depth: 18,
           renderType: "spiral"
         }));
       }
@@ -204,13 +204,13 @@ function setupLevels() {
       // Define the light brown color
       var lightBrown = [210, 180, 140];
       var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
-      cylinder(0, -900, 0, 450, 300, colorsArrayForEachFace);
-      cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
-      cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
-      cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
-      cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
-      cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
-      cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
+      cylinder(0, -900, 0, 450, 3500, colorsArrayForEachFace);
+      // cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
+      // cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
+      // cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
+      // cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
+      // cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
+      // cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
     }
   }));
 }

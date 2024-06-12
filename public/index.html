@@ -75,8 +75,6 @@
   // the position of the light in our world
   uniform vec3 u_lightWorldPosition;
 
-  //const CURVATURE_CONSTANT = 1;
-
   void main() {
     // transform object in world space
     gl_Position = u_world * a_position;
@@ -89,7 +87,7 @@
     float theta = 3.14159265359 * z / 180.0;
     float newX = cos(theta) * radius;
     float newZ = sin(theta) * radius;
-    float newY = y + theta * 25.0;
+    float newY = y;
     gl_Position = vec4(newX, newY, newZ, 1.0);
 
     // convert vertex into camera coordinates
