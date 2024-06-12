@@ -1,8 +1,9 @@
 "use strict";
 
 // global variables
+var gl;
 var keys, camera;
-var render, refillBuffers;
+var render, refillBuffers, buffer_regular, buffer_texture;
 
 // lighting
 var ambientLight = [1.0, 1.0, 1.0, 0.5];
@@ -35,18 +36,63 @@ const spiralStaircase = {
   return [newX, newY, newZ];
 }
 
+let textures = {};
+function createTextureFromSrc(src) {
+  // Create a texture.
+  let texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  // Fill the texture with a 1x1 blue pixel.
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                new Uint8Array([0, 0, 255, 255]));
+  // Asynchronously load an image
+  var image = new Image();
+  image.crossOrigin = "anonymous"; // enable CORS
+  image.src = src;
+  image.addEventListener('load', function() {
+    // Now that the image has loaded make copy it to the texture.
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
+    gl.generateMipmap(gl.TEXTURE_2D);
+  });
+  return texture;
+}
+function createCheckboardTexture(texSize) {
+  // Initialize image1 as a 2D array of Float32Array
+  var image1 = Array.from({ length: texSize }, () => 
+      Array.from({ length: texSize }, () => new Float32Array(4))
+  );
 
-// Test with a simple vertex
-const vertex = [25, 0, Math.PI/2, 1];
-const transformedVertex = mapVertexToCurve(vertex);
-console.log(transformedVertex);
+  // Populate image1 with checkerboard pattern
+  for (var i = 0; i < texSize; i++) {
+      for (var j = 0; j < texSize; j++) {
+          var c = (((i & 0x8) == 0) ^ ((j & 0x8) == 0)) ? 1 : 0;
+          image1[i][j] = [c, c, c, 1];
+      }
+  }
 
+  // Convert floats to unsigned bytes for texture
+  var image2 = new Uint8Array(4 * texSize * texSize);
+  for (var i = 0; i < texSize; i++) {
+      for (var j = 0; j < texSize; j++) {
+          for (var k = 0; k < 4; k++) {
+              image2[4 * texSize * i + 4 * j + k] = Math.floor(255 * image1[i][j][k]);
+          }
+      }
+  }
+
+  return image2;
+}
+
+
+function setupTextures() {
+  textures["F_texture"] = createTextureFromSrc("https://webglfundamentals.org/webgl/resources/f-texture.png");
+}
 
 function setupWebGL() {
 
   // Get A WebGL context
   var canvas = document.querySelector("#canvas");
-  var gl = canvas.getContext("webgl");
+  gl = canvas.getContext("webgl");
   if (!gl) {
     return;
   }
@@ -64,6 +110,7 @@ function setupWebGL() {
         position: gl.getAttribLocation(program, "a_position"),
         color: gl.getAttribLocation(program, "a_color"),
         normal: gl.getAttribLocation(program, "a_normal"),
+        texture: gl.getAttribLocation(program, "a_texcoord")
       },
       uniformLocations: {
         viewMatrix: gl.getUniformLocation(program, "u_viewMatrix"),
@@ -72,6 +119,8 @@ function setupWebGL() {
         lightWorldPosition: gl.getUniformLocation(program, "u_lightWorldPosition"),
         ambientLight: gl.getUniformLocation(program, "u_ambientLight"),
         reverseLightDirection: gl.getUniformLocation(program, "u_reverseLightDirection"),
+        textureMap: gl.getUniformLocation(program, "u_texture"),
+        useTexture: gl.getUniformLocation(program, "u_useTexture")
       }
     },
     spiral: {
@@ -80,6 +129,7 @@ function setupWebGL() {
         position: gl.getAttribLocation(spiralProgram, "a_position"),
         color: gl.getAttribLocation(spiralProgram, "a_color"),
         normal: gl.getAttribLocation(spiralProgram, "a_normal"),
+        texture: gl.getAttribLocation(program, "a_texcoord")
       },
       uniformLocations: {
         viewMatrix: gl.getUniformLocation(spiralProgram, "u_viewMatrix"),
@@ -90,61 +140,77 @@ function setupWebGL() {
         reverseLightDirection: gl.getUniformLocation(spiralProgram, "u_reverseLightDirection"),
         spiralRadius: gl.getUniformLocation(spiralProgram, "u_spiralRadius"),
         spiralHeight: gl.getUniformLocation(spiralProgram, "u_spiralHeight"),
+        textureMap: gl.getUniformLocation(program, "u_texture"),
+        useTexture: gl.getUniformLocation(program, "u_useTexture")
       }
     }
   };
   
-  // Create buffers
-  var positionBuffer = gl.createBuffer();
-  var colorBuffer = gl.createBuffer();
-  var normalBuffer = gl.createBuffer();
+  // for gl_objects (non-textured)
+  buffer_regular = {
+    "positionBuffer" : gl.createBuffer(),
+    "colorBuffer" : gl.createBuffer(),
+    "normalBuffer" : gl.createBuffer(),
+    "textureBuffer" : gl.createBuffer()
+  };
+  buffer_texture = {
+    "positionBuffer" : gl.createBuffer(),
+    "colorBuffer" : gl.createBuffer(),
+    "normalBuffer" : gl.createBuffer(),
+    "textureBuffer" : gl.createBuffer()
+  };
 
-  refillBuffers = function() {
+  refillBuffers = function(arr, b, txt = false) {
     let combinedPositions = [];
     let combinedColors = [];
     let combinedNormals = [];
+    let combinedTextures = [];
 
-    gl_objects.forEach(obj => {
+    arr.forEach(obj => {
       combinedPositions.push(...obj.positions);
       combinedColors.push(...obj.colors);
       combinedNormals.push(...obj.normals);
+      combinedTextures.push(...obj.textures);
     });
 
-    // Refill buffers for triangles
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // Refill buffers
+    gl.bindBuffer(gl.ARRAY_BUFFER, b.positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(combinedPositions), gl.STATIC_DRAW);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, b.colorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(combinedColors), gl.STATIC_DRAW);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, b.normalBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(combinedNormals), gl.STATIC_DRAW);
+
+    if (txt) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.textureBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(combinedTextures), gl.STATIC_DRAW);
+    }
   };
 
-  /** Create Renderer **/
-  render = function() {
-    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.CULL_FACE);
-    gl.enable(gl.DEPTH_TEST);
-
+  let renderObjects = function(arr, b, txt = false) {
     let startIndex = 0;
-    gl_objects.forEach(object => {
+
+    arr.forEach(object => {
       var shader = (object.type === 'spiral') ? shaders.spiral : shaders.normal;
       gl.useProgram(shader.program);
 
       gl.enableVertexAttribArray(shader.attribLocations.position);
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.positionBuffer);
       gl.vertexAttribPointer(shader.attribLocations.position, 3, gl.FLOAT, false, 0, 0);
 
       gl.enableVertexAttribArray(shader.attribLocations.color);
-      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.colorBuffer);
       gl.vertexAttribPointer(shader.attribLocations.color, 3, gl.UNSIGNED_BYTE, true, 0, 0);
 
       gl.enableVertexAttribArray(shader.attribLocations.normal);
-      gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.normalBuffer);
       gl.vertexAttribPointer(shader.attribLocations.normal, 3, gl.FLOAT, false, 0, 0);
+
+      gl.enableVertexAttribArray(shader.attribLocations.texture);
+      gl.bindBuffer(gl.ARRAY_BUFFER, b.textureBuffer);
+      gl.vertexAttribPointer(shader.attribLocations.texture, 2, gl.FLOAT, false, 0, 0);
 
       var viewMatrix = camera.view(gl);
       gl.uniformMatrix4fv(shader.uniformLocations.viewMatrix, false, viewMatrix);
@@ -159,6 +225,15 @@ function setupWebGL() {
       var matrixInverseTranspose = m4.transpose(matrixInverse);
       gl.uniformMatrix4fv(shader.uniformLocations.worldMatrixInverseTranspose, false, matrixInverseTranspose);
 
+      if (txt) {
+        // rebind the texture
+        gl.bindTexture(gl.TEXTURE_2D, object.textureMap);
+        gl.uniform1i(shader.uniformLocations.textureMap, 0);
+        gl.uniform1i(shader.uniformLocations.useTexture, true);
+      } else {
+        gl.uniform1i(shader.uniformLocations.useTexture, false);
+      }
+
       var primitiveType = gl[object.primitiveType];
       var offset = startIndex;
       var count = object.positions.length / 3;
@@ -168,8 +243,21 @@ function setupWebGL() {
     });
   }
 
+  /** Create Renderer **/
+  render = function() {
+    webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
+    
+    renderObjects(gl_t_objects, buffer_texture, true);
+    renderObjects(gl_objects, buffer_regular);
+  }
+
   // initalize empty buffers
-  refillBuffers();
+  refillBuffers(gl_t_objects, buffer_texture, true);
+  refillBuffers(gl_objects, buffer_regular);
 }
 
 /** Setup Key Manager **/
@@ -201,29 +289,29 @@ function setupLevels() {
         target: [400, 0, 100]
       });
 
-      // add the players
+      // // add the players
       player = new Player({
-        x: 600,
+        x: 625,
         y: 0,
-        z: 0,
+        z: 410,
         width: 50,
         height: 50,
         depth: 5,
         renderType: "spiral"
       });
 
-      // add some blocks
-      for (var j = 0; j < 100; j++) {
-        blocks.push(new Block({
-          x: 500,
-          y: -100, 
-          z: 400 - j * 18,
-          width: 300,
-          height: 25,
-          depth: 18,
-          renderType: "spiral"
-        }));
-      }
+      // // add some blocks
+      // for (var j = 0; j < 100; j++) {
+      //   blocks.push(new Block({
+      //     x: 500,
+      //     y: -100, 
+      //     z: 400 - j * 18,
+      //     width: 300,
+      //     height: 25,
+      //     depth: 18,
+      //     renderType: "spiral"
+      //   }));
+      // }
     },
     createGeometry: function() {
       // loop through each block and add its geometry
@@ -232,25 +320,55 @@ function setupLevels() {
       });
 
       // add the player's geometry
-      player.createGeometry();
+      //player.createGeometry();
+
+      
+      var colors = [
+        [200, 200, 200], // Front face color
+        [200, 200, 200],   // Back face color
+        [200, 200, 200],  // Top face color
+        [200, 200, 200],  // Bottom face color
+        [200, 200, 200],  // Right face color
+        [200, 200, 200]  // Left face color
+      ],
+      colors2 = [
+        [200, 200, 20], // Front face color
+        [200, 200, 20],   // Back face color
+        [200, 200, 20],  // Top face color
+        [200, 200, 20],  // Bottom face color
+        [200, 200, 20],  // Right face color
+        [200, 200, 20]  // Left face color
+      ];
+
+      wipeTextures();
+      rectangularPrism(0, 0, 0, 100, 300, 300, colors);
+      setTexture(textures["F_texture"]);
+      rectangularPrism(850, 0, 0, 150, 150, 150, colors2);
+
+      wipeTextures();
+      rectangularPrism(-300, 0, 0, 100, 300, 300, colors);
+      cube(600, 300, 0, 50, colors2);
 
       // add some extra cool graphics
       // Define the light brown color
-      var lightBrown = [210, 180, 140];
-      var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
-      cylinder(0, -900, 0, 450, 300, colorsArrayForEachFace);
-      cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
-      cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
-      cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
-      cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
-      cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
-      cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
+      // var lightBrown = [210, 180, 140];
+      // var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
+      // cylinder(0, -1400, 0, 500, 1000, colorsArrayForEachFace);
+      // cylinder(0, -900, 0, 450, 300, colorsArrayForEachFace);
+      // cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
+      // cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
+      // cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
+      // cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
+      // cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
+      // cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
     }
   }));
 }
 
 function main() {
   setupWebGL();
+
+  setupTextures();
 
   setupKeyManager();
 
@@ -282,7 +400,7 @@ function runGame() {
     });
 
     // update player
-    player.update();
+    //player.update();
 
     // render geometry using WebGL pipeline
     render();
@@ -294,9 +412,10 @@ main();
 
 // animation loop
 function animate() {
-  
-  runGame();
-  requestAnimationFrame(animate); 
+  if (loop) {
+    runGame();
+    requestAnimationFrame(animate); 
+  }
 }
 
 // Start the animation loop

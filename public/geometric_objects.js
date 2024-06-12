@@ -1,6 +1,19 @@
 
-// objects in these array are rendered by GL.TRIANGLES
+// objects in this array are rendered without texturing
 var gl_objects = [];
+
+// objects in this array are rendered with texturing
+var gl_t_objects = [];
+
+var usingTexture = false,
+    currentTexture = null;
+function wipeTextures () { 
+  usingTexture = false; 
+};
+function setTexture (txt) { 
+    usingTexture = true;
+    currentTexture = txt;
+  };
 
 function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
   // create new object to be rendered by WebGL
@@ -9,9 +22,11 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
     positions: [], 
     colors: [], 
     normals: [],
+    textures: [],
+    textureMap: null,
     targetObject: targetObject,
     primitiveType: 'TRIANGLES',
-    type: targetObject.renderType
+    type: (targetObject) ? targetObject.renderType : 'regular'
   };
 
   var hs = size / 2; // half-size
@@ -102,9 +117,68 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
     }
   }
 
-  // add new object to render array to be iterated through
-  gl_objects.push(gl_object);
+  if (usingTexture) {
+    var txtAr = new Float32Array([
+      // Front face
+      0, 1,
+      1, 1,
+      1, 0,
+      0, 1,
+      1, 0,
+      0, 0,
+    
+      // Back face
+      1, 1,
+      1, 0,
+      0, 0,
+      1, 1,
+      0, 0,
+      0, 1,
+    
+      // Top face
+      0, 0,
+      0, 1,
+      1, 1,
+      0, 0,
+      1, 1,
+      1, 0,
+    
+      // Bottom face
+      1, 0,
+      0, 0,
+      0, 1,
+      1, 0,
+      0, 1,
+      1, 1,
+    
+      // Right face
+      1, 0,
+      0, 0,
+      0, 1,
+      1, 0,
+      0, 1,
+      1, 1,
+    
+      // Left face 
+      0, 0,
+      0, 1,
+      1, 1,
+      0, 0,
+      1, 1,
+      1, 0,
+    ]);
+
+    gl_object.textures = txtAr;
+
+    gl_object.textureMap = currentTexture;
+
+    gl_t_objects.push(gl_object);
+  } else {
+    // add new object to render array to be iterated through
+    gl_objects.push(gl_object);
+  }
 }
+
 
 function rectangularPrism(x, y, z, width, height, depth, colorsArrayForEachFace, targetObject) {
   // create new object to be rendered by WebGL
@@ -112,10 +186,13 @@ function rectangularPrism(x, y, z, width, height, depth, colorsArrayForEachFace,
     positions: [], 
     colors: [], 
     normals: [],
+    textures: [],
+    textureMap: null,
     targetObject: targetObject,
     primitiveType: 'TRIANGLES',
-    type: targetObject.renderType
+    type: (targetObject) ? targetObject.renderType : 'regular'
   };
+  
 
   var halfWidth = width / 2;
   var halfHeight = height / 2;
@@ -207,12 +284,70 @@ function rectangularPrism(x, y, z, width, height, depth, colorsArrayForEachFace,
     }
   }
 
-  // Add the object to the render array
-  gl_objects.push(gl_object);
+  if (usingTexture) {
+    let txtAr = new Float32Array([
+      // Front face
+      0, 1,
+      1, 1,
+      1, 0,
+      0, 1,
+      1, 0,
+      0, 0,
+    
+      // Back face
+      1, 1,
+      1, 0,
+      0, 0,
+      1, 1,
+      0, 0,
+      0, 1,
+    
+      // Top face
+      0, 0,
+      0, 1,
+      1, 1,
+      0, 0,
+      1, 1,
+      1, 0,
+    
+      // Bottom face
+      1, 0,
+      0, 0,
+      0, 1,
+      1, 0,
+      0, 1,
+      1, 1,
+    
+      // Right face
+      1, 0,
+      0, 0,
+      0, 1,
+      1, 0,
+      0, 1,
+      1, 1,
+    
+      // Left face 
+      0, 0,
+      0, 1,
+      1, 1,
+      0, 0,
+      1, 1,
+      1, 0,
+    ]);
+    
+    
+    gl_object.textures = txtAr;
+
+    gl_object.textureMap = currentTexture;
+
+    gl_t_objects.push(gl_object);
+  } else {
+    // add new object to render array to be iterated through
+    gl_objects.push(gl_object);
+  }
 }
 
-
-// circle in xz plane
+// circle in xz plane (no texture yet)
 function xz_circle(x, y, z, radius, normalDirection, color, targetObject, segments) {
   // create new object to be rendered by WebGL
   let gl_object = { 
@@ -248,6 +383,7 @@ function xz_circle(x, y, z, radius, normalDirection, color, targetObject, segmen
   gl_objects.push(gl_object);
 }
 
+// cylinder (no texture yet)
 function cylinder(x, y, z, radius, height, colorsArrayForEachFace, targetObject, segments = 36) {
   var hs = height / 2;
   var topColor = colorsArrayForEachFace[0],

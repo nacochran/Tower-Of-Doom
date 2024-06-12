@@ -1,4 +1,9 @@
 
+let loop = true;
+function noLoop() {
+  loop = false;
+}
+
 function radToDeg(r) {
   return r * 180 / Math.PI;
 }
