@@ -1,2 +1,3 @@
-# WebGL Platformer
- WebGL Generic Platformer 1.0
+# Game: Tower of Doom
+Built using WebGL 2.0
+Basic speedrunner game
