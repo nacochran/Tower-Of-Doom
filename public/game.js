@@ -79,7 +79,7 @@ class Actor {
     var rotationMatrix = m4.multiply(rotationZ, m4.multiply(rotationY, rotationX));
 
     // Create a translation matrix based on position
-    var translationMatrix = m4.translation(this.pos.x, this.pos.y, this.pos.z);
+    var translationMatrix = m4.translation(this.pos.x + this.size.x/2, this.pos.y + this.size.y/2, this.pos.z + this.size.z/2);
 
     // Multiply rotation matrix by translation matrix to get the final transformation matrix
     var finalMatrix = m4.multiply(rotationMatrix, translationMatrix);
@@ -147,6 +147,8 @@ class Actor {
 class Player extends Actor {
   constructor(config) {
     super(config);
+
+    this.renderType = config.renderType || 'normal';
   }
 
   createGeometry() {
@@ -159,22 +161,43 @@ class Player extends Actor {
           [55, 207, 25]  // Left face color
         ];
 
-    var s = this.size.x;
-    cube(-s/2, -s/2, -s/2, s, colors, this);
-  }
-
-  // rotate counterclockwise / clockwise
-  rotate(activateLeft, activateRight) {
-    if (activateLeft) {
-      this.rot.y++;
-    } else if (activateRight) {
-      this.rot.y--;
-    }
+        rectangularPrism(
+          -this.size.x/2, 
+          -this.size.y/2, 
+          -this.size.z/2, 
+          this.size.x, 
+          this.size.y, 
+          this.size.z, 
+          colors, 
+          this
+        );
   }
 
   update() {
-    // orientation player
-    //this.rotate(keys.pressed('left'), keys.pressed('right'));
+    // camera target
+    let x1 = this.pos.x,
+        y1 = this.pos.y,
+        z1 = this.pos.z;
+      // camera position
+    let x2 = this.pos.x + 100,
+        y2 = this.pos.y + 100,
+        z2 = this.pos.z + 25;
+    
+    let r1 = x1, r2 = x2;
+    let theta1 = degToRad(z1),
+        theta2 = degToRad(z2);
+
+    // set camera target
+    let camTX = Math.cos(theta1) * r1;
+    let camTZ = Math.sin(theta1) * r1;
+    let camTY = y1 - theta1 * 100.0;
+    camera.setTarget(camTX, camTY, camTZ);
+
+    // set camera position
+    let camX = Math.cos(theta2) * r2;
+    let camZ = Math.sin(theta2) * r2;
+    let camY = y2 - theta2 * 100.0;
+    camera.setPosition(camX, camY, camZ);
 
     // move and collide y
     this.updateY(keys.pressed('space'));
@@ -227,8 +250,17 @@ class Block extends Actor {
           [200, 200, 200]  // Left face color
         ];
     }
-    var s = this.size.x;
-    cube(-s/2, -s/2, -s/2, s, colors, this);
+
+    rectangularPrism(
+      -this.size.x/2, 
+      -this.size.y/2, 
+      -this.size.z/2, 
+      this.size.x, 
+      this.size.y, 
+      this.size.z, 
+      colors, 
+      this
+    );
   }
 
   collideX(obj) {
@@ -249,7 +281,7 @@ class Block extends Actor {
           obj.pos.y = this.pos.y - this.size.y;
           obj.vel.y *= -1;
       } else if (obj.pos.y > this.pos.y) {
-          obj.pos.y = this.pos.y + obj.size.y;
+          obj.pos.y = this.pos.y + this.size.y;
           obj.vel.y = 0;
           obj.acc.y = 0;
           obj.dragForce = 0.5;
@@ -367,6 +399,12 @@ class Camera {
 
     // Update the camera rotation
     this.rotation = [yaw, pitch];
+  }
+
+  setPosition(x, y, z) {
+    this.position[0] = x;
+    this.position[1] = y;
+    this.position[2] = z;
   }
 
   updatePosition(speed) {

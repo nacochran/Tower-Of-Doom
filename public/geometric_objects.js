@@ -11,7 +11,7 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
     normals: [],
     targetObject: targetObject,
     primitiveType: 'TRIANGLES',
-    renderType: targetObject.renderType
+    type: targetObject.renderType
   };
 
   var hs = size / 2; // half-size
@@ -105,6 +105,112 @@ function cube(x, y, z, size, colorsArrayForEachFace, targetObject) {
   // add new object to render array to be iterated through
   gl_objects.push(gl_object);
 }
+
+function rectangularPrism(x, y, z, width, height, depth, colorsArrayForEachFace, targetObject) {
+  // create new object to be rendered by WebGL
+  let gl_object = { 
+    positions: [], 
+    colors: [], 
+    normals: [],
+    targetObject: targetObject,
+    primitiveType: 'TRIANGLES',
+    type: targetObject.renderType
+  };
+
+  var halfWidth = width / 2;
+  var halfHeight = height / 2;
+  var halfDepth = depth / 2;
+
+  var vertices = [
+    // Front face
+    -halfWidth, -halfHeight,  halfDepth,
+     halfWidth, -halfHeight,  halfDepth,
+     halfWidth,  halfHeight,  halfDepth,
+    -halfWidth,  halfHeight,  halfDepth,
+    // Back face
+    -halfWidth, -halfHeight, -halfDepth,
+    -halfWidth,  halfHeight, -halfDepth,
+     halfWidth,  halfHeight, -halfDepth,
+     halfWidth, -halfHeight, -halfDepth,
+    // Top face
+    -halfWidth,  halfHeight, -halfDepth,
+    -halfWidth,  halfHeight,  halfDepth,
+     halfWidth,  halfHeight,  halfDepth,
+     halfWidth,  halfHeight, -halfDepth,
+    // Bottom face
+    -halfWidth, -halfHeight, -halfDepth,
+     halfWidth, -halfHeight, -halfDepth,
+     halfWidth, -halfHeight,  halfDepth,
+    -halfWidth, -halfHeight,  halfDepth,
+    // Right face
+     halfWidth, -halfHeight, -halfDepth,
+     halfWidth,  halfHeight, -halfDepth,
+     halfWidth,  halfHeight,  halfDepth,
+     halfWidth, -halfHeight,  halfDepth,
+    // Left face
+    -halfWidth, -halfHeight, -halfDepth,
+    -halfWidth, -halfHeight,  halfDepth,
+    -halfWidth,  halfHeight,  halfDepth,
+    -halfWidth,  halfHeight, -halfDepth,
+  ];
+
+  // Translate vertices to assigned position
+  for (var i = 0; i < vertices.length; i += 3) {
+    vertices[i] += x;
+    vertices[i + 1] += y;
+    vertices[i + 2] += z;
+  }
+
+  // Indices for drawing the cube with TRIANGLES
+  var indices = [
+    0, 1, 2,  0, 2, 3,    // front
+    4, 5, 6,  4, 6, 7,    // back
+    8, 9, 10, 8, 10, 11,  // top
+    12, 13, 14, 12, 14, 15,  // bottom
+    16, 17, 18, 16, 18, 19,  // right
+    20, 21, 22, 20, 22, 23   // left
+  ];
+
+  // Add vertices to positions.triangles array
+  for (var i = 0; i < indices.length; i++) {
+    gl_object.positions.push(vertices[indices[i] * 3] + halfWidth, vertices[indices[i] * 3 + 1] + halfHeight, vertices[indices[i] * 3 + 2] + halfDepth);
+  }
+
+  // Add colors to colors.triangles array
+  for (var i = 0; i < 6; i++) {
+    var color = colorsArrayForEachFace[i];
+    for (var j = 0; j < 6; j++) { // 6 vertices per face
+      gl_object.colors.push(color[0], color[1], color[2]);
+    }
+  }
+
+  // Add normals to normals.triangles array
+  var faceNormals = [
+    // Front face
+    [0, 0, 1],
+    // Back face
+    [0, 0, -1],
+    // Top face
+    [0, 1, 0],
+    // Bottom face
+    [0, -1, 0],
+    // Right face
+    [1, 0, 0], 
+    // Left face
+    [-1, 0, 0]
+  ];
+
+  for (var i = 0; i < 6; i++) {
+    var normal = faceNormals[i];
+    for (var j = 0; j < 6; j++) { // 6 vertices per face
+      gl_object.normals.push(normal[0], normal[1], normal[2]);
+    }
+  }
+
+  // Add the object to the render array
+  gl_objects.push(gl_object);
+}
+
 
 // circle in xz plane
 function xz_circle(x, y, z, radius, normalDirection, color, targetObject, segments) {
