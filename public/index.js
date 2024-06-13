@@ -502,7 +502,8 @@ function main() {
 
   setupLevels();
   levels[0].create();
-  
+  refillBuffers(gl_t_objects, buffer_texture, true);
+  refillBuffers(gl_objects, buffer_regular);
 }
 /** Game */
 function runGame() {
