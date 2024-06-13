@@ -33,6 +33,138 @@ class Game {
     this.g = 0.2;
 
     this.entities = [];
+
+    // intro variables
+    this.phase = 'intro';
+    this.iTime = 0;
+    this.s = 0;
+    this.o = 1;
+    this.fSize = 150;
+
+    // play variables
+    this.gTime = 0;
+    this.score = 0;
+    this.cameraTrackSpeed = 25;
+
+    this.blockSize = 18;
+    this.startZ = 400;
+    this.numBlocks = 100;
+    this.endZ = 0;
+    this.win = false;
+  }
+
+  intro() {
+    this.iTime++;
+    
+    var iText = document.querySelectorAll('.countdown h1')[0];
+    iText.style.transform =  `scale(${this.s})`;
+    iText.style.display = 'block';
+
+    let speed = 8,
+        interval = 35,
+        delay = 85;
+    if (this.iTime < delay) {
+      this.s = 0;
+    } else if (this.iTime < delay + interval) {
+      iText.textContent = '3';
+      iText.style.opacity = '1';
+      this.s += (1 - this.s) / speed;
+    } else if (this.iTime < delay + interval*2) {
+      this.s += (0 - this.s) / speed;
+    } else if (this.iTime < delay + interval*3) {
+      iText.textContent = '2';
+      this.s += (1 - this.s) / speed;
+    } else if (this.iTime < delay + interval*4) {
+      this.s += (0 - this.s) / speed;
+    } else if (this.iTime < delay + interval*5) {
+      iText.textContent = '1';
+      this.s += (1 - this.s) / speed;
+    } else if (this.iTime < delay + interval*6) {
+      this.s += (0 - this.s) / speed;
+    } else if (this.iTime < delay + interval*7) {
+      iText.textContent = 'Start!';
+      this.s += (1 - this.s) / speed;
+    } else if (this.iTime < delay + interval*8) {
+      this.o -= 0.05;
+      this.fSize += 2;
+      iText.style.opacity = `${this.o.toString()}`;
+      iText.style.fontSize = `${this.fSize.toString()}px`;
+    } else {
+      this.startTimer();
+      this.cameraTrackSpeed = 2;
+      this.phase = 'play';
+      this.iTime = 0;
+    }
+
+  }
+
+  startTimer() {
+    var gTimeElement = document.querySelectorAll('.game-time h1')[0];
+    gTimeElement.textContent = `Time: ${this.score}`;
+    gTimeElement.style.display = 'block';
+    setInterval(() => {
+      if (this.phase === 'play') {
+        this.gTime += 1;
+        this.score = this.gTime; // Update score with gTime value
+
+        var gTimeElement = document.querySelectorAll('.game-time h1')[0];
+        if (gTimeElement) {
+          gTimeElement.textContent = `Time: ${this.score}`;
+        }
+      }
+    }, 1000); // 1000 milliseconds = 1 second
+  }
+
+  run() {
+    if (this.phase === 'intro') {
+      this.intro();
+      keys.freeze = true;
+    } else if (this.phase === 'play') {
+      keys.freeze = false;
+    } else if (this.phase === 'win screen') {
+      keys.freeze = true;
+      camera.setPosition(0, 0, 1600, 25);
+      this.iTime++;
+
+      if (this.iTime > 25) {
+        camera.setTarget(0, 0, 100);
+      }
+
+      var gTimeElement = document.querySelectorAll('.game-time h1')[0];
+      gTimeElement.style.display = "none";
+
+      let screen = document.querySelectorAll('.end-screen')[0];
+      screen.style.display = 'block';
+      var screenText = document.querySelectorAll('.end-screen h1')[0];
+      screenText.textContent = `You scored ${this.score}!`;
+    } else if (this.phase === 'game over screen') {
+      keys.freeze = true;
+      camera.setPosition(0, 0, 1600, 25);
+      this.iTime++;
+
+      if (this.iTime > 25) {
+        camera.setTarget(0, 0, 100);
+      }
+
+      var gTimeElement = document.querySelectorAll('.game-time h1')[0];
+      gTimeElement.style.display = "none";
+
+      let screen = document.querySelectorAll('.end-screen')[0];
+      screen.style.display = 'block';
+      var screenText = document.querySelectorAll('.end-screen h1')[0];
+      screenText.textContent = "You Lost!";
+    }
+
+    // update blocks
+    blocks.forEach(block => {
+      block.update();
+    });
+
+    // update player
+    player.update();
+
+    // render geometry using WebGL pipeline
+    render();
   }
 }
 
@@ -56,7 +188,8 @@ class Actor {
     this.rotVel = VL.new(0, 0, 0);
     this.rotAcc = VL.new(0, 0, 0);
     this.tVel = 8; // terminal (free falling) velocity
-    this.maxSpeed = 5; // max speed of the player
+    this.maxSpeedZ = 3; // max speed of the player
+    this.maxSpeedX = 5; // max speed of the player
     this.dragForce = game.airFriction;
 
     // tracking collisions with objects
@@ -96,10 +229,10 @@ class Actor {
   }
 
   updateX(activateLeft, activateRight) {  
-    if (activateLeft && Math.abs(this.vel.x) < this.maxSpeed) {
+    if (activateLeft && Math.abs(this.vel.x) < this.maxSpeedX) {
         this.acc.x = -0.2;
         this.acc.x -= (this.vel.x > 0) ? this.dragForce/2 : 0;
-    } else if (activateRight && Math.abs(this.vel.x) < this.maxSpeed) {
+    } else if (activateRight && Math.abs(this.vel.x) < this.maxSpeedX) {
         this.acc.x = 0.2;
         this.acc.x += (this.vel.x < 0) ? this.dragForce/2 : 0;
     } else if (Math.abs(this.vel.x) > this.dragForce) {
@@ -124,11 +257,11 @@ class Actor {
   }
 
   updateZ(activateUp, activateDown) {
-    if (activateUp && Math.abs(this.vel.z) < this.maxSpeed) {
-      this.acc.z = -0.2;
+    if (activateUp && Math.abs(this.vel.z) < this.maxSpeedZ) {
+      this.acc.z = -0.1;
       this.acc.z -= (this.vel.z > 0) ? this.dragForce/2 : 0;
-    } else if (activateDown && Math.abs(this.vel.z) < this.maxSpeed) {
-        this.acc.z = 0.2;
+    } else if (activateDown && Math.abs(this.vel.z) < this.maxSpeedZ) {
+        this.acc.z = 0.1;
         this.acc.z += (this.vel.z < 0) ? this.dragForce/2 : 0;
     } else if (Math.abs(this.vel.z) > this.dragForce) {
         this.acc.z = (this.vel.z < 0) ? this.dragForce : -this.dragForce;
@@ -152,6 +285,9 @@ class Player extends Actor {
   }
 
   createGeometry() {
+    wipeTextures();
+    // setTexture(textures["F_texture"]);
+
     var colors = [
           [55, 207, 25], // Front face color
           [55, 207, 25],   // Back face color
@@ -160,7 +296,7 @@ class Player extends Actor {
           [55, 207, 25],  // Right face color
           [55, 207, 25]  // Left face color
         ];
-
+        
         rectangularPrism(
           -this.size.x/2, 
           -this.size.y/2, 
@@ -174,31 +310,33 @@ class Player extends Actor {
   }
 
   update() {
-    // camera target
-    let x1 = this.pos.x,
-        y1 = this.pos.y,
-        z1 = this.pos.z;
-      // camera position
-    let x2 = this.pos.x + 100,
-        y2 = this.pos.y + 100,
-        z2 = this.pos.z + 25;
+    if (game.phase === 'intro' || game.phase === 'play') {
+      // camera target
+      let x1 = this.pos.x,
+          y1 = this.pos.y,
+          z1 = this.pos.z;
+        // camera position
+      let x2 = this.pos.x + 100,
+          y2 = this.pos.y + 100,
+          z2 = this.pos.z + 25;
+      
+      let r1 = x1, r2 = x2;
+      let theta1 = degToRad(z1),
+          theta2 = degToRad(z2);
+
+      // set camera target
+      let camTX = Math.cos(theta1) * r1;
+      let camTZ = Math.sin(theta1) * r1;
+      let camTY = y1 - theta1 * 100.0;
+      camera.setTarget(camTX, camTY, camTZ);
+
+      // set camera position
+      let camX = Math.cos(theta2) * r2;
+      let camZ = Math.sin(theta2) * r2;
+      let camY = y2 - theta2 * 100.0;
+      camera.setPosition(camX, camY, camZ, game.cameraTrackSpeed);
+    }
     
-    let r1 = x1, r2 = x2;
-    let theta1 = degToRad(z1),
-        theta2 = degToRad(z2);
-
-    // set camera target
-    let camTX = Math.cos(theta1) * r1;
-    let camTZ = Math.sin(theta1) * r1;
-    let camTY = y1 - theta1 * 100.0;
-    camera.setTarget(camTX, camTY, camTZ);
-
-    // set camera position
-    let camX = Math.cos(theta2) * r2;
-    let camZ = Math.sin(theta2) * r2;
-    let camY = y2 - theta2 * 100.0;
-    camera.setPosition(camX, camY, camZ);
-
     // move and collide y
     this.updateY(keys.pressed('space'));
     blocks.forEach(block => {
@@ -213,12 +351,19 @@ class Player extends Actor {
     blocks.forEach(block => {
       block.collideX(this);
     });
+    this.pos.x = Math.max(this.pos.x, 425);
 
     // move and collide z
     this.updateZ(keys.pressed('up'), keys.pressed('down'));
     blocks.forEach(block => {
       block.collideZ(this);
     });
+
+    if (this.pos.y < -175 && game.phase === 'play') {
+      game.phase = 'game over screen';
+    } else if (this.pos.z < game.endZ + game.blockSize && game.phase === 'play') {
+      game.phase = 'win screen';
+    }
 
     this.setTransformationMatrix();
   }
@@ -238,9 +383,10 @@ class Block extends Actor {
   }
 
   createGeometry() {
-    var colors = [];
+    var colors = [ [], [], [], [], [], [] ];
     switch (this.type) {
       case 'stone':
+        wipeTextures();
         colors = [
           [200, 200, 200], // Front face color
           [200, 200, 200],   // Back face color
@@ -249,8 +395,27 @@ class Block extends Actor {
           [200, 200, 200],  // Right face color
           [200, 200, 200]  // Left face color
         ];
+      break;
+      case 'banner':
+        colors = [
+          [255, 255, 255], // Front face color
+          [255, 255, 255],   // Back face color
+          [255, 255, 255],  // Top face color
+          [255, 255, 255],  // Bottom face color
+          [255, 255, 255],  // Right face color
+          [255, 255, 255],  // Left face color
+        ];
+        setTexture([
+          null,
+          null,
+          textures["checkboard"],
+          null,
+          null,
+          null
+        ]);
     }
 
+    
     rectangularPrism(
       -this.size.x/2, 
       -this.size.y/2, 
@@ -401,10 +566,16 @@ class Camera {
     this.rotation = [yaw, pitch];
   }
 
-  setPosition(x, y, z) {
-    this.position[0] = x;
-    this.position[1] = y;
-    this.position[2] = z;
+  setPosition(x, y, z, t = 0) {
+    if (t === 0) {
+      this.position[0] = x;
+      this.position[1] = y;
+      this.position[2] = z;
+    } else  {
+      this.position[0] += (x - this.position[0]) / t;
+      this.position[1] += (y - this.position[1]) / t;
+      this.position[2] += (z - this.position[2]) / t;
+    }
   }
 
   updatePosition(speed) {
@@ -442,6 +613,7 @@ class KeyManager {
     this.recording = false;
     this.inputData = [];
     this.records = [];
+    this.freeze = false;
     
     // playing back a record
     this.playRecord = [];
@@ -470,7 +642,7 @@ class KeyManager {
     if (!selector) {
         return false;
     }
-    return this.current[selector];
+    return !this.freeze && this.current[selector];
   }
 
   keyPressed(keyCode) {

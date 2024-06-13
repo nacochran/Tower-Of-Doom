@@ -1,7 +1,7 @@
 
 
 #menu {
-  background-color: rgba(200, 200, 200, 0.6);
+  background-color: rgba(200, 200, 200, 0.75);
   padding: 25px;
   text-align: center;
   height: 100vh;
@@ -11,18 +11,32 @@
 #menu h2 {
   font-size: 50px;
 }
-#menu button.play {
+button {
   font-size: 20px;
   padding: 10px;
   color: black;
   background-color: rgba(0, 0, 0, 0);
-  width: 100px;
+  width: 150px;
+  margin-top: 50px;
   transition: width 0.2s ease-in-out;
 }
-#menu button.play:hover {
+button:hover {
   cursor: hover;
-  width: 150px;
+  width: 200px;
   transition: width 0.2s ease-in-out;
+}
+
+.end-screen {
+  background-color: rgba(200, 200, 200, 0.75);
+  padding: 25px;
+  text-align: center;
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  top: 0px;
+}
+.end-screen h1 {
+  font-size: 50px;
 }
 
 body {
@@ -32,4 +46,32 @@ canvas {
   width: 100vw;
   height: 100vh;
   display: block;
+}
+
+
+.countdown {
+  position: absolute;
+  left: 3vw;
+  width: 100%;
+  top: 250px;
+}
+.countdown h1 {
+  text-align: center;
+  color: rgb(116, 0, 0);
+  font-size: 150px;
+  margin: 0px;
+  padding: 0px;
+  text-shadow: 5px 5px 10px rgba(0, 0, 0, 1);
+}
+
+.game-time {
+  font-size: 20px;
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  margin: 0px;
+  padding: 0px;
+}
+.game-time h1 {
+  margin: 0px;
 }

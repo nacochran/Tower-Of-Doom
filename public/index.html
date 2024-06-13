@@ -9,13 +9,28 @@
 <body>
   <!-- Menu to welcome user -->
   <div id="menu">
-    <h2>Test Game</h2>
+    <h2>Tower of Doom</h2>
     <button class="play" onclick="play()">Play</button>
   </div>
   
   <!-- Canvas to draw on -->
   <canvas id="canvas"></canvas>
   
+  <!-- Additional UI for the game -->
+  <div id="game-UI">
+    <div class="countdown">
+      <h1 style="display: none">Start!</h1>
+    </div>
+
+    <div class="game-time">
+      <h1></h1>
+    </div>
+
+    <div class="end-screen" style="display: none">
+      <h1>You scored </h1>
+      <button onclick="play()">Play Again</button>
+    </div>
+  </div>
 
 <!-- vertex shader  #1 -->
 <script id="vertex-shader-3d" type="x-shader/x-vertex">

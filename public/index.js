@@ -82,10 +82,22 @@ function createCheckboardTexture(texSize) {
 
   return image2;
 }
+function createTextureFromPattern(patternImage, texSize) {
+  // Create a texture.
+  let texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  // Asynchronously load the patternImage to the texture.
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texSize, texSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, patternImage);
+  gl.generateMipmap(gl.TEXTURE_2D);
+
+  return texture;
+}
 
 
 function setupTextures() {
-  textures["F_texture"] = createTextureFromSrc("https://webglfundamentals.org/webgl/resources/f-texture.png");
+  //textures["F_texture"] = createTextureFromSrc("https://webglfundamentals.org/webgl/resources/f-texture.png");
+  textures["checkboard"] = createTextureFromPattern(createCheckboardTexture(128), 128);
 }
 
 function setupWebGL() {
@@ -140,8 +152,8 @@ function setupWebGL() {
         reverseLightDirection: gl.getUniformLocation(spiralProgram, "u_reverseLightDirection"),
         spiralRadius: gl.getUniformLocation(spiralProgram, "u_spiralRadius"),
         spiralHeight: gl.getUniformLocation(spiralProgram, "u_spiralHeight"),
-        textureMap: gl.getUniformLocation(program, "u_texture"),
-        useTexture: gl.getUniformLocation(program, "u_useTexture")
+        textureMap: gl.getUniformLocation(spiralProgram, "u_texture"),
+        useTexture: gl.getUniformLocation(spiralProgram, "u_useTexture")
       }
     }
   };
@@ -227,6 +239,9 @@ function setupWebGL() {
 
       if (txt) {
         // rebind the texture
+        if (Array.isArray(object.texture)) {
+          console.error("Object's texture is an array of textures. Please specify a single texture for each individual object.")
+        }
         gl.bindTexture(gl.TEXTURE_2D, object.textureMap);
         gl.uniform1i(shader.uniformLocations.textureMap, 0);
         gl.uniform1i(shader.uniformLocations.useTexture, true);
@@ -279,39 +294,179 @@ function setupKeyManager() {
 
 /** Setup Levels **/
 function setupLevels() {
-  // Setup levels
   levels.push(new Level({
-    name: "Test Level",
+    name: "Menu",
     design: function() {
+      let blockSize = game.blockSize;
+      let startZ = game.startZ + blockSize;
+      let numBlocks = game.numBlocks;
+
       // add camera
       camera = new Camera({
-        position: [600, 150, 1250],
-        target: [400, 0, 100]
+        position: [0, 0, 1600],
+        target: [0, 0, 100]
       });
 
-      // // add the players
+      // add some blocks
+      let j = 0;
+      let offsetZ = 0;
+      const lowerBound = 20;  // set your lower bound here
+      const upperBound = 50; // set your upper bound here
+
+      // start block (banner)
+      blocks.push(new Block({
+        x: 500,
+        y: -100, 
+        z: startZ + offsetZ,
+        width: 300,
+        height: 25,
+        depth: blockSize,
+        renderType: "spiral",
+        type: "banner"
+      }));
+
+      // generic platforms
+      while (j < numBlocks - 2) {
+        blocks.push(new Block({
+          x: 500,
+          y: -100, 
+          z: startZ - (j + 1) * blockSize + offsetZ,
+          width: 300,
+          height: 25,
+          depth: blockSize,
+          renderType: "spiral"
+        }));
+
+        // Every 2 blocks, decide if we want to change offsetZ
+        if ((j + 1) % 4 === 0) {
+          // Random chance to increase offsetZ
+          if (Math.random() < 0.5) { // 50% chance to increase offsetZ
+            // Random amount to increase offsetZ by (adjust the range as needed)
+            const randomIncrease = lowerBound + Math.random() * (upperBound - lowerBound);
+            offsetZ -= randomIncrease;
+            
+          }
+        }
+
+        j++;
+      }
+
+      game.endZ = startZ - (numBlocks - 1) * blockSize + offsetZ;
+      
+      // end platform
+      blocks.push(new Block({
+        x: 500,
+        y: -100, 
+        z: game.endZ,
+        width: 300,
+        height: 25,
+        depth: blockSize,
+        renderType: "spiral",
+        type: "banner"
+      }));
+    },
+    createGeometry: function() {
+      // loop through each block and add its geometry
+      blocks.forEach((b) => {
+        b.createGeometry();
+      });
+
+      // add some extra cool graphics
+      // Define the light brown color
+      var lightBrown = [210, 180, 140];
+      var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
+      cylinder(0, -1400, 0, 500, 1000, colorsArrayForEachFace);
+      cylinder(0, -900, 0, 450, 300, colorsArrayForEachFace);
+      cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
+      cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
+      cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
+      cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
+      cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
+      cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
+    }
+  }));
+
+  levels.push(new Level({
+    name: "Game",
+    design: function() {
+      let blockSize = game.blockSize;
+      let startZ = game.startZ + blockSize;
+      let numBlocks = game.numBlocks;
+
+      // add camera
+      camera = new Camera({
+        position: [0, 0, 1600],
+        target: [0, 0, 100]
+      });
+
+      // add the players
       player = new Player({
         x: 625,
         y: 0,
-        z: 410,
+        z: startZ + 8,
         width: 50,
         height: 50,
         depth: 5,
         renderType: "spiral"
       });
 
-      // // add some blocks
-      // for (var j = 0; j < 100; j++) {
-      //   blocks.push(new Block({
-      //     x: 500,
-      //     y: -100, 
-      //     z: 400 - j * 18,
-      //     width: 300,
-      //     height: 25,
-      //     depth: 18,
-      //     renderType: "spiral"
-      //   }));
-      // }
+      // add some blocks
+      let j = 0;
+      let offsetZ = 0;
+      const lowerBound = 20;  // set your lower bound here
+      const upperBound = 50; // set your upper bound here
+
+      // start block (banner)
+      blocks.push(new Block({
+        x: 500,
+        y: -100, 
+        z: startZ + offsetZ,
+        width: 300,
+        height: 25,
+        depth: blockSize,
+        renderType: "spiral",
+        type: "banner"
+      }));
+
+      // generic platforms
+      while (j < numBlocks - 2) {
+        blocks.push(new Block({
+          x: 500,
+          y: -100, 
+          z: startZ - (j + 1) * blockSize + offsetZ,
+          width: 300,
+          height: 25,
+          depth: blockSize,
+          renderType: "spiral"
+        }));
+
+        // Every 2 blocks, decide if we want to change offsetZ
+        if ((j + 1) % 4 === 0) {
+          // Random chance to increase offsetZ
+          if (Math.random() < 0.5) { // 50% chance to increase offsetZ
+            // Random amount to increase offsetZ by (adjust the range as needed)
+            const randomIncrease = lowerBound + Math.random() * (upperBound - lowerBound);
+            offsetZ -= randomIncrease;
+            
+          }
+        }
+
+        j++;
+      }
+
+      game.endZ = startZ - (numBlocks - 1) * blockSize + offsetZ;
+      
+      // end platform
+      blocks.push(new Block({
+        x: 500,
+        y: -100, 
+        z: game.endZ,
+        width: 300,
+        height: 25,
+        depth: blockSize,
+        renderType: "spiral",
+        type: "banner"
+      }));
     },
     createGeometry: function() {
       // loop through each block and add its geometry
@@ -320,47 +475,20 @@ function setupLevels() {
       });
 
       // add the player's geometry
-      //player.createGeometry();
-
-      
-      var colors = [
-        [200, 200, 200], // Front face color
-        [200, 200, 200],   // Back face color
-        [200, 200, 200],  // Top face color
-        [200, 200, 200],  // Bottom face color
-        [200, 200, 200],  // Right face color
-        [200, 200, 200]  // Left face color
-      ],
-      colors2 = [
-        [200, 200, 20], // Front face color
-        [200, 200, 20],   // Back face color
-        [200, 200, 20],  // Top face color
-        [200, 200, 20],  // Bottom face color
-        [200, 200, 20],  // Right face color
-        [200, 200, 20]  // Left face color
-      ];
-
-      wipeTextures();
-      rectangularPrism(0, 0, 0, 100, 300, 300, colors);
-      setTexture(textures["F_texture"]);
-      rectangularPrism(850, 0, 0, 150, 150, 150, colors2);
-
-      wipeTextures();
-      rectangularPrism(-300, 0, 0, 100, 300, 300, colors);
-      cube(600, 300, 0, 50, colors2);
+      player.createGeometry();
 
       // add some extra cool graphics
       // Define the light brown color
-      // var lightBrown = [210, 180, 140];
-      // var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
-      // cylinder(0, -1400, 0, 500, 1000, colorsArrayForEachFace);
-      // cylinder(0, -900, 0, 450, 300, colorsArrayForEachFace);
-      // cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
-      // cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
-      // cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
-      // cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
-      // cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
-      // cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
+      var lightBrown = [210, 180, 140];
+      var colorsArrayForEachFace = [lightBrown, lightBrown, lightBrown];
+      cylinder(0, -1400, 0, 500, 1000, colorsArrayForEachFace);
+      cylinder(0, -900, 0, 450, 300, colorsArrayForEachFace);
+      cylinder(0, -600, 0, 400, 300, colorsArrayForEachFace);
+      cylinder(0, -300, 0, 350, 300, colorsArrayForEachFace);
+      cylinder(0, 0, 0, 300, 300, colorsArrayForEachFace);
+      cylinder(0, 300, 0, 250, 300, colorsArrayForEachFace);
+      cylinder(0, 600, 0, 200, 300, colorsArrayForEachFace);
+      cylinder(0, 900, 0, 150, 300, colorsArrayForEachFace);
     }
   }));
 }
@@ -373,37 +501,34 @@ function main() {
   setupKeyManager();
 
   setupLevels();
+  levels[0].create();
+  
 }
 /** Game */
 function runGame() {
   
   if (scene === 'menu') {
-    // .. do stuff
-  } else if (scene === 'game') {
-    // Move Camera
-    const moveSpeed = 2;  
-    const rotationSpeed = 0.01;
-    if (keys.pressed('w')) {
-      camera.updatePosition(moveSpeed);
-    } else if (keys.pressed('s')) {
-      camera.updatePosition(-moveSpeed);
-    }
-    if (keys.pressed('a')) {
-      camera.updateRotation(-rotationSpeed, 0);
-    } else if (keys.pressed('d')) {
-      camera.updateRotation(rotationSpeed, 0); 
-    }
-
-    // update blocks
     blocks.forEach(block => {
       block.update();
     });
-
-    // update player
-    //player.update();
-
-    // render geometry using WebGL pipeline
+    
     render();
+  } else if (scene === 'game') {
+    // Move Camera
+    // const moveSpeed = 2;  
+    // const rotationSpeed = 0.01;
+    // if (keys.pressed('w')) {
+    //   camera.updatePosition(moveSpeed);
+    // } else if (keys.pressed('s')) {
+    //   camera.updatePosition(-moveSpeed);
+    // }
+    // if (keys.pressed('a')) {
+    //   camera.updateRotation(-rotationSpeed, 0);
+    // } else if (keys.pressed('d')) {
+    //   camera.updateRotation(rotationSpeed, 0); 
+    // }
+
+    game.run();
   }
 }
 
