@@ -162,8 +162,7 @@ function setupWebGL() {
   buffer_regular = {
     "positionBuffer" : gl.createBuffer(),
     "colorBuffer" : gl.createBuffer(),
-    "normalBuffer" : gl.createBuffer(),
-    "textureBuffer" : gl.createBuffer()
+    "normalBuffer" : gl.createBuffer()
   };
   buffer_texture = {
     "positionBuffer" : gl.createBuffer(),
@@ -203,7 +202,6 @@ function setupWebGL() {
 
   let renderObjects = function(arr, b, txt = false) {
     let startIndex = 0;
-
     arr.forEach(object => {
       var shader = (object.type === 'spiral') ? shaders.spiral : shaders.normal;
       gl.useProgram(shader.program);
@@ -212,17 +210,21 @@ function setupWebGL() {
       gl.bindBuffer(gl.ARRAY_BUFFER, b.positionBuffer);
       gl.vertexAttribPointer(shader.attribLocations.position, 3, gl.FLOAT, false, 0, 0);
 
-      gl.enableVertexAttribArray(shader.attribLocations.color);
-      gl.bindBuffer(gl.ARRAY_BUFFER, b.colorBuffer);
-      gl.vertexAttribPointer(shader.attribLocations.color, 3, gl.UNSIGNED_BYTE, true, 0, 0);
-
       gl.enableVertexAttribArray(shader.attribLocations.normal);
       gl.bindBuffer(gl.ARRAY_BUFFER, b.normalBuffer);
       gl.vertexAttribPointer(shader.attribLocations.normal, 3, gl.FLOAT, false, 0, 0);
 
-      gl.enableVertexAttribArray(shader.attribLocations.texture);
-      gl.bindBuffer(gl.ARRAY_BUFFER, b.textureBuffer);
-      gl.vertexAttribPointer(shader.attribLocations.texture, 2, gl.FLOAT, false, 0, 0);
+      if (txt) {
+        gl.disableVertexAttribArray(shader.attribLocations.color);
+        gl.enableVertexAttribArray(shader.attribLocations.texture);
+        gl.bindBuffer(gl.ARRAY_BUFFER, b.textureBuffer);
+        gl.vertexAttribPointer(shader.attribLocations.texture, 2, gl.FLOAT, false, 0, 0);
+      } else {
+        gl.disableVertexAttribArray(shader.attribLocations.texture);
+        gl.enableVertexAttribArray(shader.attribLocations.color);
+        gl.bindBuffer(gl.ARRAY_BUFFER, b.colorBuffer);
+        gl.vertexAttribPointer(shader.attribLocations.color, 3, gl.UNSIGNED_BYTE, true, 0, 0);
+      }
 
       var viewMatrix = camera.view(gl);
       gl.uniformMatrix4fv(shader.uniformLocations.viewMatrix, false, viewMatrix);
@@ -266,13 +268,9 @@ function setupWebGL() {
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     
-    renderObjects(gl_t_objects, buffer_texture, true);
     renderObjects(gl_objects, buffer_regular);
+    renderObjects(gl_t_objects, buffer_texture, true);
   }
-
-  // initalize empty buffers
-  refillBuffers(gl_t_objects, buffer_texture, true);
-  refillBuffers(gl_objects, buffer_regular);
 }
 
 /** Setup Key Manager **/

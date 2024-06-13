@@ -165,9 +165,11 @@ function quad(x, y, z, width, height, color, surfaceDirection, targetObject) {
     gl_object.normals.push(normal[0], normal[1], normal[2]);
   }
 
+  
+
   if (usingTexture) {
     gl_object.textures = textureArr;
-
+    
     gl_object.textureMap = currentTexture;
 
     gl_t_objects.push(gl_object);
