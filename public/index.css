@@ -67,8 +67,8 @@ canvas {
 .game-time {
   font-size: 20px;
   position: absolute;
-  left: 5px;
-  top: 5px;
+  left: 15px;
+  top: 15px;
   margin: 0px;
   padding: 0px;
 }
