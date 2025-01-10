@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.19.2",
-    "spectorjs": "^0.9.30"
+    "spectorjs": "^0.9.30",
+    "test-project": "file:"
   }
 }
